@@ -74,39 +74,43 @@ public class NewUsbService extends Service {
     private final BroadcastReceiver permissionBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (Objects.equals(intent.getAction(), ACTION_USB_PERMISSION)) {
 
-                Bundle bundle = intent.getExtras();
+                synchronized (this)
+                {
+                    if (Objects.equals(intent.getAction(), ACTION_USB_PERMISSION)) {
+                /*Bundle bundle = intent.getExtras();
                 boolean granted = false;
                 if (bundle != null)
                     granted = bundle.getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+*/
+                    if ( intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) ) {
+                        Intent permissionGrantedIntent = new Intent(ACTION_USB_PERMISSION_GRANTED);
+                        context.sendBroadcast(intent);
 
-                if (granted) {
-                    Intent permissionGrantedIntent = new Intent(ACTION_USB_PERMISSION_GRANTED);
-                    context.sendBroadcast(intent);
+                        usbDeviceConnection = usbManager.openDevice(usbDevice);
 
-                    usbDeviceConnection = usbManager.openDevice(usbDevice);
+                        new MavlinkConnectionThread().start();
 
-                    new MavlinkConnectionThread().start();
-
-                } else // User not accepted our USB connection. Send an Intent to the Main Activity
-                {
-                    Intent permissionDeniedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
-                    context.sendBroadcast(intent);
+                    } else // User not accepted our USB connection. Send an Intent to the Main Activity
+                    {
+                        Intent permissionDeniedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
+                        context.sendBroadcast(intent);
+                    }
+                } else if (Objects.equals(intent.getAction(), ACTION_USB_ATTACHED)) {
+                    if (!serialPortConnected)
+                        findSerialPortDevice(); // A USB device has been attached. Try to open it as a Serial port
+                } else if (Objects.equals(intent.getAction(), ACTION_USB_DETACHED)) {
+                    DEVICE_NAME = "";
+                    updateText();
+                    // Usb device was disconnected. send an intent to the Main Activity
+                    Intent usbDisconnected = new Intent(ACTION_USB_DISCONNECTED);
+                    context.sendBroadcast(new Intent(ACTION_USB_DISCONNECTED));
+                    if (serialPortConnected) {
+                        usbSerialDevice.syncClose();
+                    }
+                    serialPortConnected = false;
                 }
-            } else if (Objects.equals(intent.getAction(), ACTION_USB_ATTACHED)) {
-                if (!serialPortConnected)
-                    findSerialPortDevice(); // A USB device has been attached. Try to open it as a Serial port
-            } else if (Objects.equals(intent.getAction(), ACTION_USB_DETACHED)) {
-                DEVICE_NAME = "";
-                updateText();
-                // Usb device was disconnected. send an intent to the Main Activity
-                Intent usbDisconnected = new Intent(ACTION_USB_DISCONNECTED);
-                context.sendBroadcast(new Intent(ACTION_USB_DISCONNECTED));
-                if (serialPortConnected) {
-                    usbSerialDevice.syncClose();
-                }
-                serialPortConnected = false;
+
             }
         }
     };
