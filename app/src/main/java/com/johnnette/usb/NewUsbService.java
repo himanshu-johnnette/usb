@@ -87,6 +87,8 @@ public class NewUsbService extends Service {
 
                     usbDeviceConnection = usbManager.openDevice(usbDevice);
 
+                    new MavlinkConnectionThread().start();
+
                 } else // User not accepted our USB connection. Send an Intent to the Main Activity
                 {
                     Intent permissionDeniedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
@@ -152,7 +154,7 @@ public class NewUsbService extends Service {
                 if (UsbSerialDevice.isSupported(usbDevice)) {
                     // There is a device connected to our Android device. Try to open it as a Serial Port.
                     requestUserPermission();
-                    new MavlinkConnectionThread().start();
+
                     break;
                 } else {
                     usbDeviceConnection = null;
@@ -198,7 +200,6 @@ public class NewUsbService extends Service {
 
             if (usbSerialDevice != null) {
                 try {
-                    boolean isOpen = false;
 
                     if ( usbSerialDevice.open() ) {
                         serialPortConnected = true;
@@ -206,7 +207,7 @@ public class NewUsbService extends Service {
                         usbSerialDevice.setDataBits(UsbSerialInterface.DATA_BITS_8);
                         usbSerialDevice.setStopBits(UsbSerialInterface.STOP_BITS_1);
                         usbSerialDevice.setParity(UsbSerialInterface.PARITY_NONE);
-                        usbSerialDevice.setFlowControl(UsbSerialInterface.FLOW_CONTROL_DSR_DTR);
+                        usbSerialDevice.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
 
 
                         serialInputStream = usbSerialDevice.getInputStream();
@@ -226,7 +227,7 @@ public class NewUsbService extends Service {
 
                         }
 
-                        Intent intent = new Intent(ACTION_NO_USB);
+                        Intent intent = new Intent(ACTION_USB_READY);
                         context.sendBroadcast(intent);
                     } else {
 
